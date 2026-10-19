@@ -92,7 +92,7 @@ export default function ClientePage() {
   if (loading) {
     return (
       <main className="grid min-h-dvh place-items-center">
-        <LoaderCircle className="h-8 w-8 animate-spin text-brass-400" />
+        <LoaderCircle className="h-8 w-8 animate-spin text-cyan-400" />
       </main>
     );
   }
@@ -114,14 +114,14 @@ export default function ClientePage() {
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Cómo te llamamos"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-ink-800 px-4 py-3 outline-none ring-brass-400 focus:ring-2"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-ink-800 px-4 py-3 outline-none ring-cyan-400 focus:ring-2"
             />
           </label>
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
           <button
             type="submit"
             disabled={saving}
-            className="w-full rounded-2xl bg-brass-500 py-3 font-medium text-ink-950 disabled:opacity-60"
+            className="w-full rounded-2xl bg-cyan-500 py-3 font-medium text-ink-950 disabled:opacity-60"
           >
             {saving ? "Creando..." : "Generar mi QR"}
           </button>
@@ -136,7 +136,7 @@ export default function ClientePage() {
         <ArrowLeft className="h-4 w-4" /> Cambiar perfil
       </Link>
 
-      <p className="text-xs uppercase tracking-[0.3em] text-brass-400">Cliente</p>
+      <p className="text-xs uppercase tracking-[0.3em] text-cyan-400">Cliente</p>
       <h1 className="font-display text-4xl text-stone-50">{profile.nombre || "Cliente"}</h1>
 
       <section className="mt-6 rounded-3xl bg-white p-5 shadow-glow">
@@ -159,14 +159,14 @@ export default function ClientePage() {
             </p>
           </div>
           {cortes >= CORTES_PARA_GRATIS ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-brass-500/20 px-3 py-1 text-xs text-brass-300">
+            <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/20 px-3 py-1 text-xs text-cyan-400">
               <Gift className="h-3.5 w-3.5" /> Corte gratis listo
             </span>
           ) : null}
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-ink-950">
           <div
-            className="h-full rounded-full bg-brass-400 transition-all"
+            className="h-full rounded-full bg-cyan-400 transition-all"
             style={{ width: `${(progreso / CORTES_PARA_GRATIS) * 100}%` }}
           />
         </div>
@@ -175,12 +175,12 @@ export default function ClientePage() {
       <section
         className={`mt-4 rounded-3xl border p-5 ${
           descuento
-            ? "border-brass-500/40 bg-brass-500/10"
+            ? "border-cyan-500/40 bg-cyan-500/10"
             : "border-white/10 bg-ink-800/80"
         }`}
       >
         <div className="flex items-start gap-3">
-          <Sparkles className={`mt-0.5 h-5 w-5 ${descuento ? "text-brass-300" : "text-stone-500"}`} />
+          <Sparkles className={`mt-0.5 h-5 w-5 ${descuento ? "text-cyan-400" : "text-stone-500"}`} />
           <div>
             <p className="text-sm text-stone-400">Tarifa de hoy</p>
             <p className="font-display text-3xl text-stone-50">

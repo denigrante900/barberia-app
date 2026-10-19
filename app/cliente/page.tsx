@@ -55,6 +55,24 @@ export default function ClientePage() {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // Por si venimos de la redirección de OAuth con tokens en el hash de la URL
+        if (window.location.hash && window.location.hash.includes("access_token")) {
+          const { data, error } = await supabase.auth.getSessionFromUrl({
+            storeSession: true,
+          });
+          if (data?.session?.user) {
+            const userProfile = await fetchOrCreateProfile(
+              data.session.user.id,
+              data.session.user.user_metadata?.full_name || data.session.user.email?.split("@")[0] || "Cliente"
+            );
+            setProfile(userProfile);
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setLoading(false);
+            return;
+          }
+          if (error) throw error;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const userProfile = await fetchOrCreateProfile(

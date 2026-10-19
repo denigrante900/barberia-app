@@ -90,7 +90,8 @@ export default function BarberoPage() {
       await stopScanner();
       const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode(READER_ID);
-      scannerRef.current = scanner as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+scannerRef.current = scanner as any;
       setScanning(true);
       await scanner.start(
         { facingMode: "environment" },

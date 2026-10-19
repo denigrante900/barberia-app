@@ -1,4 +1,4 @@
-export const BARBERO_PIN = process.env.NEXT_PUBLIC_BARBERO_PIN ?? "0106";
+export const BARBERO_PIN = "0106";
 export const BARBERO_AUTH_KEY = "barberia_barbero_session";
 export const BARBERO_AUTH_VALUE = "authorized";
 

@@ -91,7 +91,7 @@ export default function BarberoPage() {
       const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode(READER_ID);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-scannerRef.current = scanner as any;
+      scannerRef.current = scanner as any;
       setScanning(true);
       await scanner.start(
         { facingMode: "environment" },
@@ -183,11 +183,11 @@ scannerRef.current = scanner as any;
       </Link>
 
       <div className="flex items-center gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brass-500/15 text-brass-300">
+        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-500/15 text-cyan-400">
           <Scissors className="h-5 w-5" />
         </span>
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-brass-400">Barbero</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-cyan-400">Barbero</p>
           <h1 className="font-display text-3xl text-stone-50">Escanear cliente</h1>
         </div>
       </div>
@@ -232,7 +232,7 @@ scannerRef.current = scanner as any;
 
           <div className="rounded-2xl bg-ink-950/70 p-4">
             <p className="text-sm text-stone-400">Tarifa calculada</p>
-            <p className="font-display text-4xl text-brass-300">{formatEuro(precioFinal)}</p>
+            <p className="font-display text-4xl text-cyan-400">{formatEuro(precioFinal)}</p>
             <p className="mt-1 text-xs text-stone-500">
               {canjearGratis && puedeGratis
                 ? "Canje de corte gratis aplicado."
@@ -245,17 +245,17 @@ scannerRef.current = scanner as any;
           <label
             className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${
               puedeGratis
-                ? "border-brass-500/40 bg-brass-500/10"
+                ? "border-cyan-500/40 bg-cyan-500/10"
                 : "border-white/10 bg-ink-950/50 opacity-60"
             }`}
           >
             <span className="inline-flex items-center gap-2 text-sm">
-              <Gift className="h-4 w-4 text-brass-300" />
+              <Gift className="h-4 w-4 text-cyan-400" />
               Corte Gratis (0,00€)
             </span>
             <input
               type="checkbox"
-              className="h-5 w-5 accent-brass-400"
+              className="h-5 w-5 accent-cyan-400"
               checked={canjearGratis && puedeGratis}
               disabled={!puedeGratis}
               onChange={(e) => setCanjearGratis(e.target.checked)}
@@ -274,7 +274,7 @@ scannerRef.current = scanner as any;
               type="button"
               onClick={() => void confirmarCobro()}
               disabled={confirming}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brass-500 py-3 text-sm font-medium text-ink-950 disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-500 py-3 text-sm font-medium text-ink-950 disabled:opacity-60"
             >
               {confirming ? (
                 <LoaderCircle className="h-4 w-4 animate-spin" />

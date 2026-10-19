@@ -98,11 +98,11 @@ export function PinGate({ children }: { children: React.ReactNode }) {
         className="w-full max-w-sm rounded-3xl border border-white/10 bg-ink-800 p-6 shadow-glow"
       >
         <div className="mb-6 flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brass-500/15 text-brass-300">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-500/15 text-cyan-400">
             <Lock className="h-5 w-5" />
           </span>
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-brass-400">Acceso barbero</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-cyan-400">Acceso barbero</p>
             <h1 id="pin-title" className="font-display text-2xl text-stone-50">
               Introduce el PIN
             </h1>
@@ -117,7 +117,7 @@ export function PinGate({ children }: { children: React.ReactNode }) {
                 error
                   ? "border-red-400 bg-red-400"
                   : digits.length > index
-                    ? "border-brass-400 bg-brass-400"
+                    ? "border-cyan-400 bg-cyan-500"
                     : "border-white/20 bg-transparent"
               }`}
             />

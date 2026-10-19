@@ -1,0 +1,17 @@
+{
+  "name": "Barbería Fidelización",
+  "short_name": "Barbería",
+  "description": "PWA de fidelización para barbería",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0907",
+  "theme_color": "#0b0907",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

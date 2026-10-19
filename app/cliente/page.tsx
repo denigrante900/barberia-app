@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
-import { ArrowLeft, Gift, LoaderCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, Gift, LoaderCircle, Sparkles, Trophy } from "lucide-react";
 import {
   aplicaTarifaDescuento,
   daysSinceLastCut,
@@ -20,7 +20,9 @@ export default function ClientePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const loadProfile = useCallback(async (id: string) => {
     const { data, error: queryError } = await supabase
@@ -79,6 +81,32 @@ export default function ClientePage() {
 
     localStorage.setItem(STORAGE_KEY, data.id);
     setProfile(data as Profile);
+  };
+
+  const reclamarRecompensa = async () => {
+    if (!profile || profile.cortes < CORTES_PARA_GRATIS) return;
+    setClaiming(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    // Reiniciamos los cortes a 0 al reclamar la recompensa
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ cortes: 0 })
+      .eq("id", profile.id);
+
+    setClaiming(false);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    setSuccessMsg("¡Recompensa reclamada con éxito! Tu contador de cortes se ha reiniciado.");
+    setProfile({
+      ...profile,
+      cortes: 0,
+    });
   };
 
   const descuento = useMemo(
@@ -149,6 +177,13 @@ export default function ClientePage() {
         <p className="mt-3 break-all text-center text-[11px] text-stone-500">{profile.id}</p>
       </section>
 
+      {successMsg ? (
+        <p className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          {successMsg}
+        </p>
+      ) : null}
+      {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
+
       <section className="mt-6 rounded-3xl border border-white/10 bg-ink-800/80 p-5">
         <div className="flex items-end justify-between">
           <div>
@@ -160,7 +195,7 @@ export default function ClientePage() {
           </div>
           {cortes >= CORTES_PARA_GRATIS ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/20 px-3 py-1 text-xs text-cyan-400">
-              <Gift className="h-3.5 w-3.5" /> Corte gratis listo
+              <Gift className="h-3.5 w-3.5" /> ¡Disponible!
             </span>
           ) : null}
         </div>
@@ -170,6 +205,22 @@ export default function ClientePage() {
             style={{ width: `${(progreso / CORTES_PARA_GRATIS) * 100}%` }}
           />
         </div>
+
+        {cortes >= CORTES_PARA_GRATIS ? (
+          <button
+            type="button"
+            onClick={() => void reclamarRecompensa()}
+            disabled={claiming}
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-500 py-3 font-medium text-ink-950 transition hover:bg-cyan-400 disabled:opacity-60"
+          >
+            {claiming ? (
+              <LoaderCircle className="h-5 w-5 animate-spin" />
+            ) : (
+              <Trophy className="h-5 w-5" />
+            )}
+            Reclamar recompensa (Corte Gratis)
+          </button>
+        ) : null}
       </section>
 
       <section

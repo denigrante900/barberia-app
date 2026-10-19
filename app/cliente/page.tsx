@@ -12,75 +12,108 @@ import {
   type Profile,
 } from "@/lib/supabase";
 
-const STORAGE_KEY = "barberia_profile_id";
 const CORTES_PARA_RECOMPENSA = 10;
 
 export default function ClientePage() {
-  const [nombre, setNombre] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const loadProfile = useCallback(async (id: string) => {
-    const { data, error: queryError } = await supabase
+  const fetchOrCreateProfile = useCallback(async (userId: string, defaultName: string) => {
+    // Buscar si ya existe un perfil asociado a este auth_user_id
+    const { data: existingProfile, error: fetchError } = await supabase
       .from("profiles")
       .select("id, nombre, cortes, ultimo_corte")
-      .eq("id", id)
+      .eq("user_id", userId)
       .single();
 
-    if (queryError || !data) {
-      localStorage.removeItem(STORAGE_KEY);
-      return null;
+    if (existingProfile) {
+      return existingProfile as Profile;
     }
 
-    return data as Profile;
-  }, []);
-
-  useEffect(() => {
-    const boot = async () => {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const existing = await loadProfile(stored);
-          setProfile(existing);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "No se pudo cargar el perfil");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void boot();
-  }, [loadProfile]);
-
-  const crearPerfil = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSaving(true);
-    setError(null);
-
-    const { data, error: insertError } = await supabase
+    // Si no existe, creamos automáticamente el perfil vinculado al usuario de Google
+    const { data: newProfile, error: insertError } = await supabase
       .from("profiles")
       .insert({
-        nombre: nombre.trim() || "Cliente",
+        user_id: userId,
+        nombre: defaultName || "Cliente",
         cortes: 0,
         ultimo_corte: null,
       })
       .select("id, nombre, cortes, ultimo_corte")
       .single();
 
-    setSaving(false);
-
-    if (insertError || !data) {
-      setError(insertError?.message ?? "No se pudo crear el perfil");
-      return;
+    if (insertError || !newProfile) {
+      throw new Error(insertError?.message ?? "No se pudo crear el perfil de fidelización");
     }
 
-    localStorage.setItem(STORAGE_KEY, data.id);
-    setProfile(data as Profile);
+    return newProfile as Profile;
+  }, []);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const userProfile = await fetchOrCreateProfile(
+            session.user.id,
+            session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Cliente"
+          );
+          setProfile(userProfile);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al autenticar el perfil");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        setLoading(true);
+        try {
+          const userProfile = await fetchOrCreateProfile(
+            session.user.id,
+            session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Cliente"
+          );
+          setProfile(userProfile);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Error al sincronizar el perfil");
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [fetchOrCreateProfile]);
+
+  const iniciarSesionGoogle = async () => {
+    setError(null);
+    const { error: authError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/cliente`,
+      },
+    });
+
+    if (authError) {
+      setError(authError.message);
+    }
+  };
+
+  const cerrarSesion = async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
   };
 
   const reclamarRecompensa = async () => {
@@ -89,7 +122,6 @@ export default function ClientePage() {
     setError(null);
     setSuccessMsg(null);
 
-    // Reiniciamos los cortes a 0 al reclamar la recompensa
     const { error: updateError } = await supabase
       .from("profiles")
       .update({ cortes: 0 })
@@ -102,12 +134,12 @@ export default function ClientePage() {
       return;
     }
 
-    // Reproducir el sonido personalizado (asegúrate de tener tu archivo en public/)
     try {
       const audio = new Audio("/recompensa.mp3");
-      void audio.play();
-    } catch {
-      // Por si el navegador bloquea la reproducción automática sin interacción previa
+      audio.volume = 1.0;
+      void audio.play().catch((e) => console.log("Error al reproducir audio:", e));
+    } catch (err) {
+      console.log("No se pudo reproducir el sonido", err);
     }
 
     setSuccessMsg("¡Recompensa reclamada! Tienes un 50% de descuento en este corte y tu contador se ha reiniciado.");
@@ -127,50 +159,69 @@ export default function ClientePage() {
 
   if (loading) {
     return (
-      <main className="grid min-h-dvh place-items-center">
+      <main className="grid min-h-dvh place-items-center bg-ink-950">
         <LoaderCircle className="h-8 w-8 animate-spin text-cyan-400" />
       </main>
     );
   }
 
+  // Pantalla de inicio de sesión si no hay usuario autenticado con Google
   if (!profile) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5">
-        <Link href="/" className="mb-8 inline-flex items-center gap-2 text-sm text-stone-400">
-          <ArrowLeft className="h-4 w-4" /> Volver
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 bg-ink-950 text-stone-50">
+        <Link href="/" className="mb-8 inline-flex items-center gap-2 text-sm text-stone-400 hover:text-stone-200">
+          <ArrowLeft className="h-4 w-4" /> Volver al inicio
         </Link>
-        <h1 className="font-display text-4xl text-stone-50">Tu ficha de cliente</h1>
+        <h1 className="font-display text-4xl">Acceso de Clientes</h1>
         <p className="mt-2 text-sm text-stone-400">
-          Creamos un perfil con un código único. El barbero lo escaneará en cada visita.
+          Inicia sesión con tu cuenta de Google para acceder a tu tarjeta de fidelización desde cualquier dispositivo.
         </p>
-        <form onSubmit={crearPerfil} className="mt-8 space-y-4">
-          <label className="block text-sm text-stone-300">
-            Nombre
-            <input
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Cómo te llamamos"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-ink-800 px-4 py-3 outline-none ring-cyan-400 focus:ring-2"
-            />
-          </label>
+        
+        <div className="mt-8 space-y-4">
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
           <button
-            type="submit"
-            disabled={saving}
-            className="w-full rounded-2xl bg-cyan-500 py-3 font-medium text-ink-950 disabled:opacity-60"
+            type="button"
+            onClick={() => void iniciarSesionGoogle()}
+            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-3 font-medium text-stone-100 transition hover:bg-white/10"
           >
-            {saving ? "Creando..." : "Generar mi QR"}
+            <svg className="h-5 w-5" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="currentColor"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="currentColor"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="currentColor"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            Continuar con Google
           </button>
-        </form>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-md px-5 py-8">
-      <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-stone-400">
-        <ArrowLeft className="h-4 w-4" /> Cambiar perfil
-      </Link>
+    <main className="mx-auto max-w-md px-5 py-8 bg-ink-950 text-stone-50 min-h-dvh">
+      <div className="flex items-center justify-between mb-6">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-stone-400 hover:text-stone-200">
+          <ArrowLeft className="h-4 w-4" /> Inicio
+        </Link>
+        <button
+          onClick={() => void cerrarSesion()}
+          className="text-xs text-red-400 hover:underline"
+        >
+          Cerrar sesión
+        </button>
+      </div>
 
       <p className="text-xs uppercase tracking-[0.3em] text-cyan-400">Cliente</p>
       <h1 className="font-display text-4xl text-stone-50">{profile.nombre || "Cliente"}</h1>

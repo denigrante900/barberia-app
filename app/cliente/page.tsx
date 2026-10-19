@@ -13,7 +13,7 @@ import {
 } from "@/lib/supabase";
 
 const STORAGE_KEY = "barberia_profile_id";
-const CORTES_PARA_GRATIS = 10;
+const CORTES_PARA_RECOMPENSA = 10;
 
 export default function ClientePage() {
   const [nombre, setNombre] = useState("");
@@ -84,7 +84,7 @@ export default function ClientePage() {
   };
 
   const reclamarRecompensa = async () => {
-    if (!profile || profile.cortes < CORTES_PARA_GRATIS) return;
+    if (!profile || profile.cortes < CORTES_PARA_RECOMPENSA) return;
     setClaiming(true);
     setError(null);
     setSuccessMsg(null);
@@ -102,7 +102,15 @@ export default function ClientePage() {
       return;
     }
 
-    setSuccessMsg("¡Recompensa reclamada con éxito! Tu contador de cortes se ha reiniciado.");
+    // Reproducir el sonido personalizado (asegúrate de tener tu archivo en public/)
+    try {
+      const audio = new Audio("/recompensa.mp3");
+      void audio.play();
+    } catch {
+      // Por si el navegador bloquea la reproducción automática sin interacción previa
+    }
+
+    setSuccessMsg("¡Recompensa reclamada! Tienes un 50% de descuento en este corte y tu contador se ha reiniciado.");
     setProfile({
       ...profile,
       cortes: 0,
@@ -115,7 +123,7 @@ export default function ClientePage() {
   );
   const dias = daysSinceLastCut(profile?.ultimo_corte ?? null);
   const cortes = profile?.cortes ?? 0;
-  const progreso = Math.min(cortes, CORTES_PARA_GRATIS);
+  const progreso = Math.min(cortes, CORTES_PARA_RECOMPENSA);
 
   if (loading) {
     return (
@@ -190,23 +198,23 @@ export default function ClientePage() {
             <p className="text-sm text-stone-400">Cortes acumulados</p>
             <p className="font-display text-4xl text-stone-50">
               {progreso}
-              <span className="text-2xl text-stone-500">/{CORTES_PARA_GRATIS}</span>
+              <span className="text-2xl text-stone-500">/{CORTES_PARA_RECOMPENSA}</span>
             </p>
           </div>
-          {cortes >= CORTES_PARA_GRATIS ? (
+          {cortes >= CORTES_PARA_RECOMPENSA ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/20 px-3 py-1 text-xs text-cyan-400">
-              <Gift className="h-3.5 w-3.5" /> ¡Disponible!
+              <Gift className="h-3.5 w-3.5" /> ¡50% Descuento listo!
             </span>
           ) : null}
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-ink-950">
           <div
             className="h-full rounded-full bg-cyan-400 transition-all"
-            style={{ width: `${(progreso / CORTES_PARA_GRATIS) * 100}%` }}
+            style={{ width: `${(progreso / CORTES_PARA_RECOMPENSA) * 100}%` }}
           />
         </div>
 
-        {cortes >= CORTES_PARA_GRATIS ? (
+        {cortes >= CORTES_PARA_RECOMPENSA ? (
           <button
             type="button"
             onClick={() => void reclamarRecompensa()}
@@ -218,7 +226,7 @@ export default function ClientePage() {
             ) : (
               <Trophy className="h-5 w-5" />
             )}
-            Reclamar recompensa (Corte Gratis)
+            Reclamar 50% de Descuento
           </button>
         ) : null}
       </section>

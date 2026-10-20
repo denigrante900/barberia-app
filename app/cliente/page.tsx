@@ -74,7 +74,6 @@ export default function ClientePage() {
             }
           }
         }
-
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
 

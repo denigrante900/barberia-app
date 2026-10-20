@@ -23,7 +23,7 @@ export default function ClientePage() {
 
   const fetchOrCreateProfile = useCallback(async (userId: string, defaultName: string) => {
     // Buscar si ya existe un perfil asociado a este auth_user_id
-    const { data: existingProfile, error: fetchError } = await supabase
+    const { data: existingProfile } = await supabase
       .from("profiles")
       .select("id, nombre, cortes, ultimo_corte")
       .eq("user_id", userId)
@@ -53,44 +53,60 @@ export default function ClientePage() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       try {
-        // Por si venimos de la redirección de OAuth con tokens en el hash de la URL
+        // 1. Verificamos si venimos de la redirección de OAuth con tokens en el hash de la URL
         if (window.location.hash && window.location.hash.includes("access_token")) {
-          const { data, error } = await supabase.auth.getSessionFromUrl({
+          const { data: urlData, error: urlError } = await supabase.auth.getSessionFromUrl({
             storeSession: true,
           });
-          if (data?.session?.user) {
+          if (urlError) throw urlError;
+
+          if (urlData?.session?.user) {
             const userProfile = await fetchOrCreateProfile(
-              data.session.user.id,
-              data.session.user.user_metadata?.full_name || data.session.user.email?.split("@")[0] || "Cliente"
+              urlData.session.user.id,
+              urlData.session.user.user_metadata?.full_name || urlData.session.user.email?.split("@")[0] || "Cliente"
             );
-            setProfile(userProfile);
-            window.history.replaceState({}, document.title, window.location.pathname);
-            setLoading(false);
-            return;
+            if (isMounted) {
+              setProfile(userProfile);
+              window.history.replaceState({}, document.title, window.location.pathname);
+              setLoading(false);
+              return;
+            }
           }
-          if (error) throw error;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        // 2. Comprobación de sesión estándar existente
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
         if (session?.user) {
           const userProfile = await fetchOrCreateProfile(
             session.user.id,
             session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Cliente"
           );
-          setProfile(userProfile);
+          if (isMounted) {
+            setProfile(userProfile);
+          }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al autenticar el perfil");
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "Error al autenticar el perfil");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     void initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
+
       if (session?.user) {
         setLoading(true);
         try {
@@ -98,19 +114,28 @@ export default function ClientePage() {
             session.user.id,
             session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Cliente"
           );
-          setProfile(userProfile);
+          if (isMounted) {
+            setProfile(userProfile);
+          }
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Error al sincronizar el perfil");
+          if (isMounted) {
+            setError(err instanceof Error ? err.message : "Error al sincronizar el perfil");
+          }
         } finally {
-          setLoading(false);
+          if (isMounted) {
+            setLoading(false);
+          }
         }
       } else {
-        setProfile(null);
-        setLoading(false);
+        if (isMounted) {
+          setProfile(null);
+          setLoading(false);
+        }
       }
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [fetchOrCreateProfile]);

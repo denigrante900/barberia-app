@@ -53,31 +53,12 @@ export default function ClientePage() {
   useEffect(() => {
     let isMounted = true;
 
-    const initAuth = async () => {
+    const loadUserSession = async () => {
       try {
-        if (window.location.hash && window.location.hash.includes("access_token")) {
-          const { data: urlData, error: urlError } = await supabase.auth.getSessionFromUrl({
-            storeSession: true,
-          });
-          if (urlError) throw urlError;
-
-          if (urlData?.session?.user) {
-            const userProfile = await fetchOrCreateProfile(
-              urlData.session.user.id,
-              urlData.session.user.user_metadata?.full_name || urlData.session.user.email?.split("@")[0] || "Cliente"
-            );
-            if (isMounted) {
-              setProfile(userProfile);
-              window.history.replaceState({}, document.title, window.location.pathname);
-              setLoading(false);
-              return;
-            }
-          }
-        }
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
 
-        if (session?.user) {
+        if (session?.user && isMounted) {
           const userProfile = await fetchOrCreateProfile(
             session.user.id,
             session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Cliente"
@@ -88,7 +69,7 @@ export default function ClientePage() {
         }
       } catch (err) {
         if (isMounted) {
-          setError(err instanceof Error ? err.message : "Error al autenticar el perfil");
+          setError(err instanceof Error ? err.message : "Error al cargar la sesión");
         }
       } finally {
         if (isMounted) {
@@ -97,7 +78,7 @@ export default function ClientePage() {
       }
     };
 
-    void initAuth();
+    void loadUserSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return;
@@ -111,6 +92,10 @@ export default function ClientePage() {
           );
           if (isMounted) {
             setProfile(userProfile);
+            // Limpiamos los tokens de la URL una vez procesados
+            if (window.location.hash.includes("access_token")) {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
           }
         } catch (err) {
           if (isMounted) {

@@ -22,7 +22,6 @@ export default function ClientePage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const fetchOrCreateProfile = useCallback(async (userId: string, defaultName: string) => {
-    // Buscar si ya existe un perfil asociado a este auth_user_id
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("id, nombre, cortes, ultimo_corte")
@@ -33,7 +32,6 @@ export default function ClientePage() {
       return existingProfile as Profile;
     }
 
-    // Si no existe, creamos automáticamente el perfil vinculado al usuario de Google
     const { data: newProfile, error: insertError } = await supabase
       .from("profiles")
       .insert({
@@ -57,7 +55,6 @@ export default function ClientePage() {
 
     const initAuth = async () => {
       try {
-        // 1. Verificamos si venimos de la redirección de OAuth con tokens en el hash de la URL
         if (window.location.hash && window.location.hash.includes("access_token")) {
           const { data: urlData, error: urlError } = await supabase.auth.getSessionFromUrl({
             storeSession: true,
@@ -78,7 +75,6 @@ export default function ClientePage() {
           }
         }
 
-        // 2. Comprobación de sesión estándar existente
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
 
@@ -142,10 +138,14 @@ export default function ClientePage() {
 
   const iniciarSesionGoogle = async () => {
     setError(null);
+    const redirectUrl = process.env.NODE_ENV === "production"
+      ? "https://barberia-app-amk8-git-main-barber-2e04.vercel.app/cliente"
+      : `${window.location.origin}/cliente`;
+
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/cliente`,
+        redirectTo: redirectUrl,
       },
     });
 
@@ -208,7 +208,6 @@ export default function ClientePage() {
     );
   }
 
-  // Pantalla de inicio de sesión si no hay usuario autenticado con Google
   if (!profile) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 bg-ink-950 text-stone-50">

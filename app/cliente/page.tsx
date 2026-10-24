@@ -137,6 +137,10 @@ export default function ClientePage() {
       setError(authError.message);
     }
   };
+  const cerrarSesion = async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
+  };
   const reclamarRecompensa = async () => {
     if (!profile || profile.cortes < CORTES_PARA_RECOMPENSA) return;
     setClaiming(true);
@@ -154,7 +158,7 @@ export default function ClientePage() {
       setError(updateError.message);
       return;
     }
-
+ 
     try {
       const audio = new Audio("/recompensa.mp3");
       audio.volume = 1.0;

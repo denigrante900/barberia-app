@@ -122,27 +122,21 @@ export default function ClientePage() {
 
   const iniciarSesionGoogle = async () => {
     setError(null);
-    const redirectUrl = process.env.NODE_ENV === "production"
-      ? "https://barberia-app-amk8-git-main-barber-2e04.vercel.app/cliente"
-      : `${window.location.origin}/cliente`;
-
+    
+    // window.location.origin detecta solo si estás en localhost o en tu dominio principal de producción.
+    const redirectUrl = `${window.location.origin}/auth/callback?next=/cliente`;
+  
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: redirectUrl,
       },
     });
-
+  
     if (authError) {
       setError(authError.message);
     }
   };
-
-  const cerrarSesion = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
-  };
-
   const reclamarRecompensa = async () => {
     if (!profile || profile.cortes < CORTES_PARA_RECOMPENSA) return;
     setClaiming(true);

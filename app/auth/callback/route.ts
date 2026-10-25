@@ -5,11 +5,14 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // Captura la ruta de destino que configuraste (ej: /cliente)
-  const next = searchParams.get('next') ?? '/'
+  const next = searchParams.get('next') ?? '/cliente'
 
   if (code) {
     const cookieStore = await cookies()
+    
+    // Creamos una respuesta temporal para la redirección o usamos NextResponse
+    let response = NextResponse.redirect(`${origin}${next}`)
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -19,24 +22,25 @@ export async function GET(request: Request) {
             return cookieStore.get(name)?.value
           },
           set(name: string, value: string, options: CookieOptions) {
+            // Sincronizamos tanto en el almacén como directamente en la respuesta HTTP
             cookieStore.set({ name, value, ...options })
+            response.cookies.set({ name, value, ...options })
           },
           remove(name: string, options: CookieOptions) {
             cookieStore.delete({ name, ...options })
+            response.cookies.delete({ name, ...options })
           },
         },
       }
     )
     
-    // Intercambia el código de Google por una sesión real
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // Si va bien, redirige al usuario a la vista de cliente
-      return NextResponse.redirect(`${origin}${next}`)
+      return response
     }
   }
 
-  // Si hay algún error, devuelve al inicio
+  // Si hay error, redirige al inicio
   return NextResponse.redirect(`${origin}/`)
 }

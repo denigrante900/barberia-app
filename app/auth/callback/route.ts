@@ -10,8 +10,8 @@ export async function GET(request: Request) {
   if (code) {
     const cookieStore = await cookies()
     
-    // Creamos una respuesta temporal para la redirección o usamos NextResponse
-    let response = NextResponse.redirect(`${origin}${next}`)
+    // Cambiado de let a const para cumplir con el linter de Next.js
+    const response = NextResponse.redirect(`${origin}${next}`)
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

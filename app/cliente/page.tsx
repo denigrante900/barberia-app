@@ -53,33 +53,7 @@ export default function ClientePage() {
   useEffect(() => {
     let isMounted = true;
 
-    const loadUserSession = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        if (session?.user && isMounted) {
-          const userProfile = await fetchOrCreateProfile(
-            session.user.id,
-            session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Cliente"
-          );
-          if (isMounted) {
-            setProfile(userProfile);
-          }
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : "Error al cargar la sesión");
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadUserSession();
-
+    // onAuthStateChange detecta la sesión automáticamente al cargar y en cambios de estado
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return;
 
@@ -92,8 +66,9 @@ export default function ClientePage() {
           );
           if (isMounted) {
             setProfile(userProfile);
-            // Limpiamos los tokens de la URL una vez procesados
-            if (window.location.hash.includes("access_token")) {
+            setError(null);
+            // Limpiamos los parámetros de la URL si quedan rastros
+            if (window.location.hash.includes("access_token") || window.location.search.includes("code")) {
               window.history.replaceState({}, document.title, window.location.pathname);
             }
           }
@@ -122,8 +97,6 @@ export default function ClientePage() {
 
   const iniciarSesionGoogle = async () => {
     setError(null);
-    
-    // window.location.origin detecta solo si estás en localhost o en tu dominio principal de producción.
     const redirectUrl = `${window.location.origin}/auth/callback?next=/cliente`;
   
     const { error: authError } = await supabase.auth.signInWithOAuth({
@@ -137,10 +110,12 @@ export default function ClientePage() {
       setError(authError.message);
     }
   };
+
   const cerrarSesion = async () => {
     await supabase.auth.signOut();
     setProfile(null);
   };
+
   const reclamarRecompensa = async () => {
     if (!profile || profile.cortes < CORTES_PARA_RECOMPENSA) return;
     setClaiming(true);
